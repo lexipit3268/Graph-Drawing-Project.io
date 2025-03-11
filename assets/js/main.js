@@ -363,7 +363,19 @@ for mỗi cạnh (u, v, w) trong graph:<br>
 
 Kết luận:<br>
 Nếu không có chu trình âm, trả về dist (mảng khoảng cách ngắn nhất).<br>`,
-
+"ranked":
+`&nbsp;&nbsp;Khởi tạo d[u] = bậc vào của u <br>
+&nbsp;&nbsp;S[0] = tập các đỉnh có d[u] = 0<br>
+&nbsp;&nbsp;k = 0<br>
+&nbsp;&nbsp;trong khi S[k] không rỗng:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;S[k+1] = []<br>
+&nbsp;&nbsp;&nbsp;&nbsp;mỗi u trong S[k]:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rank[u] = k<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mỗi v kề u:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d[v]--<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nếu d[v] == 0:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;đưa v vào S[k+1]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;k++<br></br>`,
     };
 
     selectElement.addEventListener("change", function () {
@@ -374,16 +386,19 @@ Nếu không có chu trình âm, trả về dist (mảng khoảng cách ngắn n
     selectElement.dispatchEvent(new Event("change"));
 });
 
+document.getElementById("capture_btn").addEventListener("click", function() {
+    if (!cy || cy.elements().length === 0) {
+        alert("Không có đồ thị!");
+        return;
+    }
 
+    const pngData = cy.png({ bg: 'white', full: true, scale: 2 });
 
-// document.getElementById("convertToImageButton").addEventListener("click", function() {
-//     const pngData = cy.png({
-//         bg: 'white'
-//     });
-//     const link = document.createElement('a');
-//     link.href = pngData;
-//     link.download = 'graph.png';
-//     document.body.appendChild(link);
-//     link.click();
-//     document.body.removeChild(link);
-// });
+    const link = document.createElement('a');
+    link.href = pngData;
+    link.download = 'graph.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
+

@@ -73,6 +73,13 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
+/**
+ * 
+ * 
+ * Exception check for Algorithm
+ * 
+ * 
+ */
 document.getElementById("traversalType").addEventListener("change", function () {
     const graphTypeRadios = document.getElementsByName("graphType");
     const directedRadio = graphTypeRadios[0];
@@ -84,23 +91,28 @@ document.getElementById("traversalType").addEventListener("change", function () 
         directedRadio.disabled = true;
         directedRadio.parentElement.style.opacity = "0.75";
         undirectedRadio.checked = true;
-
+        undirectedRadio.parentElement.style.opacity = "1";
         updateGraphToUndirected();
         createGraphButton.click();
-    } else {
-        directedRadio.disabled = false;
-        directedRadio.parentElement.style.opacity = "1";
-    }
-    if (selectedAlgorithm === "topoSort" || selectedAlgorithm === "ranked") {
+    } else if (selectedAlgorithm === "topoSort" || selectedAlgorithm === "ranked") {
         undirectedRadio.disabled = true;
         undirectedRadio.parentElement.style.opacity = "0.75";
         directedRadio.checked = true;
+        directedRadio.parentElement.style.opacity = "1";
         startNodes.disabled = true;
         createGraphButton.click();
+    } else if (selectedAlgorithm === "bellmanFord") {
+        undirectedRadio.disabled = true;
+        undirectedRadio.parentElement.style.opacity = "0.75";
+        directedRadio.checked = true;
+        directedRadio.parentElement.style.opacity = "1";
+        createGraphButton.click();
     } else {
+        directedRadio.disabled = false;
         undirectedRadio.disabled = false;
-        undirectedRadio.parentElement.style.opacity = "1";
         startNodes.disabled = false;
+        directedRadio.parentElement.style.opacity = "1";
+        undirectedRadio.parentElement.style.opacity = "1";
     }
 });
 
@@ -976,7 +988,7 @@ async function performTopoSort() {
         await new Promise(resolve => setTimeout(resolve, document.getElementById("speedSlider").value));
     }
 
-    if (result.length !== nodes.length) {
+    if (result.length !== nodes.length && !isStopped) {
         // console.log("Có chu trình trong đồ thị!");
         document.getElementById("visitedOrder").innerText = "Có chu trình! Nhập lại";
     }
@@ -1010,6 +1022,7 @@ async function bellmanFord() {
     let allNodes = new Set();
 
     for (let line of lines) {
+        if (isStopped) return;
         const [u, v, w] = line.split(" ").map(Number);
         if (w == null) {
             visitedOrder.innerHTML = "Vui lòng nhập trọng số.";
@@ -1060,11 +1073,15 @@ async function bellmanFord() {
                             await new Promise(resolve => setTimeout(resolve, speedSlider.value)); // Thêm delay để tô màu từ từ
                         }
                     }
+                    if (isStopped) break;
+
                 }
             }
+            if (isStopped) break;
         }
         // Nếu không có cập nhật nào, thoát vòng lặp luôn cho nóng
         if (!updated) break;
+        if (isStopped) break;
     }
 
     // Kiểm tra chu trình trọng số âm
@@ -1079,21 +1096,23 @@ async function bellmanFord() {
         }
         if (hasNegativeCycle) break;
     }
-
-    if (hasNegativeCycle) {
-        visitedOrder.innerHTML = "Đồ thị chứa chu trình trọng số âm.";
-    } else if (dist[endNode] === Infinity) {
-        visitedOrder.innerHTML = "Không có đường đi.";
-    } else {
-        cy.getElementById(endNode.toString()).style("background-color", colors.green);
-        await highlightShortestPathEdges(prev, startNode, endNode, speedSlider.value);
-        let path = [];
-        for (let at = endNode; at !== null; at = prev[at]) {
-            path.push(at);
+    if(!isStopped){
+        if (hasNegativeCycle) {
+            visitedOrder.innerHTML = "Đồ thị chứa chu trình trọng số âm.";
+        } else if (dist[endNode] === Infinity) {
+            visitedOrder.innerHTML = "Không có đường đi.";
+        } else {
+            cy.getElementById(endNode.toString()).style("background-color", colors.green);
+            await highlightShortestPathEdges(prev, startNode, endNode, speedSlider.value);
+            let path = [];
+            for (let at = endNode; at !== null; at = prev[at]) {
+                path.push(at);
+            }
+            path.reverse();
+            visitedOrder.innerHTML += path.join(" -> ");
         }
-        path.reverse();
-        visitedOrder.innerHTML += path.join(" -> ");
     }
+
 
     toggleInputs(false);
 }
@@ -1146,11 +1165,14 @@ async function performRanked() {
 
     let k = 0;
     let hasCycle = false; // Biến cờ để kiểm tra chu trình
+    let result = [];
 
     while (S1.length > 0) {
+        if(isStopped) break;
         let S2 = makeNull();
 
         for (let i = 0; i < S1.length; i++) {
+            if(isStopped) break;
             const u = elementAt(S1, i + 1);
             r[u] = k;
             adjList[u].forEach(v => {
@@ -1163,6 +1185,9 @@ async function performRanked() {
             let cyNode = cy.getElementById(u);
             cyNode.style("background-color", colors.bettergreen);
 
+            result.push({ node: u, rank: r[u] });
+            document.getElementById("visitedOrder").innerText = result.map(item => `${item.node}[${item.rank}]`).join(", ");
+
             await new Promise(resolve => setTimeout(resolve, document.getElementById("speedSlider").value));
         }
 
@@ -1172,6 +1197,7 @@ async function performRanked() {
 
     // Kiểm tra nếu có chu trình
     nodes.forEach(node => {
+        if(isStopped) return;
         if (d[node.id()] > 0) {
             hasCycle = true;
         }
@@ -1179,19 +1205,7 @@ async function performRanked() {
 
     if (hasCycle) {
         document.getElementById("visitedOrder").innerText = "Có chu trình! Nhập lại!";
-    } else {
-        let result = [];
-        nodes.forEach(node => {
-            result.push({ node: node.id(), rank: r[node.id()] });
-        });
-
-        result.sort((a, b) => a.node - b.node);
-
-        document.getElementById("visitedOrder").innerText = result.map(item => `${item.node}[${item.rank}]`).join(", ");
     }
 
     toggleInputs(false);
 }
-
-
-
