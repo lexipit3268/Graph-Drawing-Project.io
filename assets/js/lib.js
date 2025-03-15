@@ -107,6 +107,13 @@ document.getElementById("traversalType").addEventListener("change", function () 
         directedRadio.checked = true;
         directedRadio.parentElement.style.opacity = "1";
         createGraphButton.click();
+    } else if (selectedAlgorithm === "kruskal" || selectedAlgorithm === "prim") {
+        directedRadio.disabled = true;
+        directedRadio.parentElement.style.opacity = "0.75";
+        undirectedRadio.checked = true;
+        undirectedRadio.parentElement.style.opacity = "1";
+        startNodes.disabled = true;
+        createGraphButton.click();
     } else {
         directedRadio.disabled = false;
         undirectedRadio.disabled = false;
@@ -149,22 +156,41 @@ async function performTraversal() {
         await performRanked();
     } else if (traversalType === "bfsfull"){
         await performBFSFull();
+    } else if (traversalType === "dfs-fullGraph") {
+        await performDFSFull();
+    } else if (traversalType === "dfs-recursion-fullGraph") {
+        await performDFSRecursionFull();
+    } else if (traversalType === "kruskal"){
+        await Kruskal();
+    } else if (traversalType === "prim"){
+        await Prim();
     }
     toggleInputs(false); // Mở lại input sau khi chạy xong
 }
 
-
 function toggleInputs(disable) {
     const traversalType = document.getElementById("traversalType").value;
+    const graphTypeRadios = document.getElementsByName("graphType");
+    const directedRadio = graphTypeRadios[0];
+    const undirectedRadio = graphTypeRadios[1];
+    if (traversalType === "topoSort" || traversalType === "ranked" || traversalType === "bellmanFord") {
+        directedRadio.disabled = disable; 
+    }
+    else if (traversalType === "kruskal" || traversalType === "bipartite" || traversalType === "prim") {
+        undirectedRadio.disabled = disable;
+    }
+    else {
+        directedRadio.disabled = disable;
+        undirectedRadio.disabled = disable; 
+    }
     document.getElementById("graphInput").disabled = disable;
     document.getElementById("creatGraph").disabled = disable;
     document.getElementById("traversalType").disabled = disable;
     document.getElementById("startNodeInput").disabled = disable;
-    if (traversalType === "topoSort" || traversalType === "ranked") {
+    if (traversalType === "topoSort" || traversalType === "ranked" || traversalType === "kruskal") {
         document.getElementById("startNodeInput").disabled = true;
     }
     document.getElementById("endNodeInput").disabled = disable;
-    document.getElementById("speedSlider").disabled = disable;
 }
 
 function resetTraversal() {
@@ -184,7 +210,13 @@ function enableInputs() {
     console.log("Traversal completed successfully.");
 }
 
-// BFSSSSSSSSSSSSS
+// Cap nhat delay
+let delay = parseInt(document.getElementById('speedSlider').value); 
+document.getElementById('speedSlider').addEventListener('input', function() {
+    delay = parseInt(this.value); 
+});
+
+// BFSSSSSSSSSSSSSSS
 async function performBFS(startNode) {
     const inputText = document.getElementById('graphInput').value.trim();
     const lines = inputText.split('\n');
@@ -217,7 +249,7 @@ async function bfs(graph, start) {
     const visited = new Set();
     const result = []; // Mảng lưu thứ tự duyệt
     const visitedEdges = new Set();
-    const delay = parseInt(document.getElementById('speedSlider').value);
+    // const delay = parseInt(document.getElementById('speedSlider').value);
 
     async function visitNext() {
         if (queue.length === 0) {
@@ -232,7 +264,7 @@ async function bfs(graph, start) {
 
             cy.$(`#${vertex}`).style('background-color', colors.red);
 
-            document.getElementById('visitedOrder').innerText = result.join(' - ');
+            document.getElementById('visitedOrder').innerText = result.join('  ');
 
             const neighborsToAdd = [];
             if (graph[vertex]) {
@@ -293,7 +325,7 @@ async function dfs(graph, start) {
     const visited = new Set();
     const result = [];
     const visitedEdges = new Set();
-    const delay = parseInt(document.getElementById('speedSlider').value);
+    // const delay = parseInt(document.getElementById('speedSlider').value);
 
     async function visitNext() {
         if (stack.length === 0) {
@@ -310,7 +342,7 @@ async function dfs(graph, start) {
             cy.$(`#${vertex}`).style('background-color', colors.blue);
 
             // Cập nhật thứ tự đã duyệt
-            document.getElementById('visitedOrder').innerText = result.join(' - ');
+            document.getElementById('visitedOrder').innerText = result.join('  ');
 
             // Thêm các đỉnh kề chưa duyệt vào ngăn xếp
             const neighborsToAdd = [];
@@ -346,6 +378,7 @@ async function dfs(graph, start) {
 function performDFSRecursion(startNode) {
     const inputText = document.getElementById('graphInput').value.trim();
     const lines = inputText.split('\n');
+    let delay = parseInt(document.getElementById('speedSlider').value); 
     let graph = {};
 
     const graphType = document.querySelector('input[name="graphType"]:checked').value;
@@ -366,7 +399,7 @@ function performDFSRecursion(startNode) {
             }
         }
     });
-    dfsRecursion(graph, startNode, new Set(), parseInt(document.getElementById('speedSlider').value), () => {
+    dfsRecursion(graph, startNode, new Set(), delay, () => {
         toggleInputs(false); // Enable inputs khi DFS đệ quy xong
     });
 }
@@ -381,7 +414,7 @@ function dfsRecursion(graph, vertex, visited = new Set(), delay, callback) {
         cy.$(`#${vertex}`).style('background-color', colors.green);
         let visitedOrder = document.getElementById('visitedOrder').innerText;
         if (visitedOrder.length > 0) {
-            visitedOrder += ' - ';
+            visitedOrder += '  ';
         }
         visitedOrder += vertex;
         document.getElementById('visitedOrder').innerText = visitedOrder;
@@ -421,7 +454,7 @@ async function mooreDijkstra() {
     const startNode = parseInt(document.getElementById("startNodeInput").value);
     const endNode = parseInt(document.getElementById("endNodeInput").value);
     const visitedOrder = document.getElementById("visitedOrder");
-    const speedSlider = document.getElementById("speedSlider");
+    // const speedSlider = document.getElementById("speedSlider");
     const graphType = document.querySelector('input[name="graphType"]:checked').value;
 
     if (isNaN(startNode) || isNaN(endNode)) {
@@ -508,11 +541,11 @@ async function mooreDijkstra() {
             }
         }
 
-        await new Promise(resolve => setTimeout(resolve, speedSlider.value));
+        await new Promise(resolve => setTimeout(resolve, delay));
     }
 
     if (found) {
-        await highlightShortestPathEdges(prev, startNode, endNode, speedSlider.value);
+        await highlightShortestPathEdges(prev, startNode, endNode, delay);
 
         let path = [];
         for (let at = endNode; at !== null; at = prev[at]) {
@@ -537,6 +570,7 @@ async function highlightShortestPathEdges(prev, startNode, endNode, delay) {
     path.reverse();
 
     let seenEdges = new Set();
+    const graphType = document.querySelector('input[name="graphType"]:checked').value;
 
     for (let i = 1; i < path.length; i++) {
         let from = path[i - 1];
@@ -550,7 +584,14 @@ async function highlightShortestPathEdges(prev, startNode, endNode, delay) {
             let edgeTarget = edge.target().id();
             let weight = edge.data('weight');
 
-            if (edgeSource === from.toString() && edgeTarget === to.toString()) {
+            if (edgeSource === from.toString() && edgeTarget === to.toString() && graphType === 'directed') {
+                if (weight < minWeight && !seenEdges.has(edge.id())) {
+                    minWeight = weight;
+                    minEdge = edge;
+                }
+            }
+            else if ((edgeSource === from.toString() && edgeTarget === to.toString() && graphType === 'undirected') ||
+            (edgeSource === to.toString() && edgeTarget === from.toString() && graphType ==='undirected')) {
                 if (weight < minWeight && !seenEdges.has(edge.id())) {
                     minWeight = weight;
                     minEdge = edge;
@@ -623,7 +664,7 @@ async function reconstructPath(prev, startNode, endNode) {
                 }
             });
         }
-        await new Promise(resolve => setTimeout(resolve, document.getElementById("speedSlider").value));
+        await new Promise(resolve => setTimeout(resolve, delay));
     }
 }
 
@@ -669,7 +710,7 @@ async function bfsCheckBipartite(graph) {
     const queue = [];
     const visited = new Set();
     const group = new Map();
-    const delay = parseInt(document.getElementById('speedSlider').value);
+    // const delay = parseInt(document.getElementById('speedSlider').value);
     const startNode = parseInt(document.getElementById('startNodeInput').value);
 
 
@@ -774,7 +815,7 @@ async function tarjan(graph) {
     ];
     
     
-    const delay = parseInt(document.getElementById('speedSlider').value);
+    // const delay = parseInt(document.getElementById('speedSlider').value);
     async function strongConnect(node) {
         indexMap[node] = index;
         lowLink[node] = index;
@@ -836,7 +877,7 @@ async function checkCycle() {
 
     const graphType = document.querySelector('input[name="graphType"]:checked').value;
     const startNode = document.getElementById('startNodeInput').value.trim();
-    const delay = parseInt(document.getElementById('speedSlider').value);
+    // const delay = parseInt(document.getElementById('speedSlider').value);
 
     if (isStopped) return;
 
@@ -989,7 +1030,7 @@ async function performTopoSort() {
         cyNode.style("background-color", colors.bettergreen);
         document.getElementById("visitedOrder").innerText += " " + node;
 
-        await new Promise(resolve => setTimeout(resolve, document.getElementById("speedSlider").value));
+        await new Promise(resolve => setTimeout(resolve, delay));
     }
 
     if (result.length !== nodes.length && !isStopped) {
@@ -1011,7 +1052,7 @@ async function bellmanFord() {
     const startNode = parseInt(document.getElementById("startNodeInput").value);
     const endNode = parseInt(document.getElementById("endNodeInput").value);
     const visitedOrder = document.getElementById("visitedOrder");
-    const speedSlider = document.getElementById("speedSlider");
+    // const speedSlider = document.getElementById("speedSlider");
     const graphType = document.querySelector('input[name="graphType"]:checked').value;
 
     if (isNaN(startNode) || isNaN(endNode)) {
@@ -1074,7 +1115,7 @@ async function bellmanFord() {
                         updated = true;
                         if (u !== startNode && u !== endNode) {
                             cy.getElementById(u.toString()).style("background-color", colors.red);
-                            await new Promise(resolve => setTimeout(resolve, speedSlider.value)); // Thêm delay để tô màu từ từ
+                            await new Promise(resolve => setTimeout(resolve, delay)); // Thêm delay để tô màu từ từ
                         }
                     }
                     if (isStopped) break;
@@ -1107,7 +1148,7 @@ async function bellmanFord() {
             visitedOrder.innerHTML = "Không có đường đi.";
         } else {
             cy.getElementById(endNode.toString()).style("background-color", colors.green);
-            await highlightShortestPathEdges(prev, startNode, endNode, speedSlider.value);
+            await highlightShortestPathEdges(prev, startNode, endNode, delay);
             let path = [];
             for (let at = endNode; at !== null; at = prev[at]) {
                 path.push(at);
@@ -1192,7 +1233,7 @@ async function performRanked() {
             result.push({ node: u, rank: r[u] });
             document.getElementById("visitedOrder").innerText = result.map(item => `${item.node}[${item.rank}]`).join(", ");
 
-            await new Promise(resolve => setTimeout(resolve, document.getElementById("speedSlider").value));
+            await new Promise(resolve => setTimeout(resolve, delay));
         }
 
         copyList(S1, S2);
@@ -1218,7 +1259,7 @@ async function performRanked() {
 async function performBFSFull() {
     let queue = [];
     let visited = new Set();
-    let delay = document.getElementById("speedSlider").value; 
+    // let delay = document.getElementById("speedSlider").value; 
     let nodes = cy.nodes().map(n => n.id()).sort((a, b) => a - b); 
     let startNode = document.getElementById("startNodeInput").value;
 
@@ -1253,7 +1294,7 @@ async function performBFSFull() {
                     .map(n => n.id());
             }
 
-            neighbors.sort((a, b) => a - b); 
+            neighbors.sort((a, b) => b - a); 
             queue.push(...neighbors);
         }
     }
@@ -1271,6 +1312,417 @@ async function performBFSFull() {
     enableInputs();
 }
 
+async function performDFSFull() {
+    let stack = [];
+    let visited = new Set();
+    // let delay = document.getElementById("speedSlider").value; 
+    let nodes = cy.nodes().map(n => n.id()).sort((a, b) => a - b); 
+    let startNode = document.getElementById("startNodeInput").value;
 
+    const graphType = document.querySelector('input[name="graphType"]:checked').value;
+    const isDirected = (graphType === "directed"); 
+
+    resetTraversal();
+
+    async function dfs(start) {
+        stack.push(start);
+
+        while (stack.length > 0) {
+            if (isStopped) return;
+
+            let current = stack.pop();
+            if (visited.has(current)) continue;
+
+            visited.add(current);
+            cy.getElementById(current).style("background-color", colors.blue);
+            document.getElementById("visitedOrder").innerText += " " + current;
+
+            await new Promise(resolve => setTimeout(resolve, delay));
+
+            let neighbors;
+            if (isDirected) {
+                neighbors = cy.getElementById(current).outgoers("node")
+                    .filter(n => !visited.has(n.id()))
+                    .map(n => n.id());
+            } else {
+                neighbors = cy.getElementById(current).neighborhood("node")
+                    .filter(n => !visited.has(n.id()))
+                    .map(n => n.id());
+            }
+
+            neighbors.sort((a, b) => b - a); 
+            stack.push(...neighbors);
+        }
+    }
+
+    if (cy.getElementById(startNode).length > 0) {
+        await dfs(startNode);
+    }
+
+    for (let u of nodes) {
+        if (!visited.has(u)) {
+            await dfs(u);
+        }
+    }
+
+    enableInputs();
+}
+
+async function performDFSRecursionFull() {
+    let visited = new Set();
+    // let delay = document.getElementById("speedSlider").value;
+    let nodes = cy.nodes().map(n => n.id()).sort((a, b) => a - b);
+    let startNode = document.getElementById("startNodeInput").value;
+
+    const graphType = document.querySelector('input[name="graphType"]:checked').value;
+    const isDirected = (graphType === "directed");
+
+    resetTraversal();
+
+    async function dfsRecursionFull(node) {
+        if (isStopped) return;
+        if (visited.has(node)) return;
+
+        visited.add(node);
+        cy.getElementById(node).style("background-color", colors.green);
+        document.getElementById("visitedOrder").innerText += " " + node;
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        let neighbors;
+        if (isDirected) {
+            neighbors = cy.getElementById(node).outgoers("node")
+                .filter(n => !visited.has(n.id()))
+                .map(n => n.id());
+        } else {
+            neighbors = cy.getElementById(node).neighborhood("node")
+                .filter(n => !visited.has(n.id()))
+                .map(n => n.id());
+        }
+
+        neighbors.sort((a, b) => a - b);
+
+        for (let neighbor of neighbors) {
+            await dfsRecursionFull(neighbor);
+        }
+    }
+
+    if (cy.getElementById(startNode).length > 0) {
+        await dfsRecursionFull(startNode);
+    }
+
+    for (let u of nodes) {
+        if (!visited.has(u)) {
+            await dfsRecursionFull(u);
+        }
+    }
+
+    enableInputs();
+}
+
+// Kruskalllllllllllll
+async function Kruskal() {
+    const visitedOrder = document.getElementById("visitedOrder");
+    const inputText = document.getElementById("graphInput").value.trim();
+    const lines = inputText.split("\n");
+    let edges = [];
+    let allNodes = new Set();
+
+    for (let line of lines) {
+        const [u, v, w] = line.split(" ").map(Number);
+        if (w == null) {
+            visitedOrder.innerHTML = "Vui lòng nhập trọng số.";
+            toggleInputs(false);
+            return;
+        }
+        if (w < 0) {
+            visitedOrder.innerHTML = "Trọng số là số không âm.";
+            toggleInputs(false);
+            return;
+        }
+        edges.push({ u, v, w });
+        allNodes.add(u);
+        allNodes.add(v);
+    }
+
+    const components = getConnectedComponents(allNodes, edges);
+    let mstResults = [];
+    
+    for (let component of components) {
+        let mstEdges = [];
+        let totalWeight = 0;
+        
+        let parent = {};
+        let rank = {};
+
+        for (let node of component) {
+            parent[node] = node;
+            rank[node] = 0;
+        }
+
+        function find(u) {
+            if (parent[u] !== u) {
+                parent[u] = find(parent[u]);
+            }
+            return parent[u];
+        }
+
+        function union(u, v) {
+            const rootU = find(u);
+            const rootV = find(v);
+
+            if (rootU !== rootV) {
+                if (rank[rootU] > rank[rootV]) {
+                    parent[rootV] = rootU;
+                } else if (rank[rootU] < rank[rootV]) {
+                    parent[rootU] = rootV;
+                } else {
+                    parent[rootV] = rootU;
+                    rank[rootU]++;
+                }
+            }
+        }
+
+        edges.sort((a, b) => a.w - b.w);
+
+        let seenEdges = new Set();
+
+        for (let { u, v, w } of edges) {
+            if (isStopped) {
+                resetTraversal();
+                return;
+            }
+
+            if (component.includes(u) && component.includes(v) && find(u) !== find(v)) {
+                mstEdges.push({ u, v, w });
+                totalWeight += w;
+                union(u, v);
+
+                cy.nodes(`#${u}`).style("background-color", colors.green); 
+                cy.nodes(`#${v}`).style("background-color", colors.green); 
+                let minWeight = Infinity;
+                let minEdge = null;
+
+                cy.edges().forEach(edge => {
+                    let edgeSource = edge.source().id();
+                    let edgeTarget = edge.target().id();
+                    let weight = edge.data('weight');
+
+                    if ((edgeSource === u.toString() && edgeTarget === v.toString()) || 
+                        (edgeSource === v.toString() && edgeTarget === u.toString())) {
+                        
+                        if (weight < minWeight && !seenEdges.has(edge.id())) {
+                            minWeight = weight;
+                            minEdge = edge;
+                        }
+                    }
+                });
+
+                if (minEdge) {
+                    minEdge.style("line-color", colors.red); 
+                    seenEdges.add(minEdge.id()); 
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+
+        mstResults.push(totalWeight); 
+    }
+
+    mstResults.forEach((weight, index) => {
+        visitedOrder.innerHTML += `Trọng lượng cây khung ${index + 1}: ${weight}<br>`;
+    });
+
+    toggleInputs(false);
+}
+
+function getConnectedComponents(nodes, edges) {
+    const visited = new Set();
+    const components = [];
+    
+    const adjList = {};
+    nodes.forEach(node => adjList[node] = []);
+    edges.forEach(({ u, v }) => {
+        adjList[u].push(v);
+        adjList[v].push(u);
+    });
+
+    function dfs(node, component) {
+        visited.add(node);
+        component.push(node);
+        adjList[node].forEach(neighbor => {
+            if (!visited.has(neighbor)) {
+                dfs(neighbor, component);
+            }
+        });
+    }
+
+    nodes.forEach(node => {
+        if (!visited.has(node)) {
+            let component = [];
+            dfs(node, component);
+            components.push(component);
+        }
+    });
+
+    return components;
+}
+
+function isConnected(nodes) {
+    const parent = {};
+    const find = (u) => {
+        if (parent[u] !== u) parent[u] = find(parent[u]);
+        return parent[u];
+    };
+    const union = (u, v) => {
+        const rootU = find(u);
+        const rootV = find(v);
+        if (rootU !== rootV) parent[rootV] = rootU;
+    };
+
+    for (let node of nodes) {
+        parent[node] = node;
+    }
+
+    const edges = document.getElementById("graphInput").value.trim().split("\n");
+    for (let edge of edges) {
+        const [u, v] = edge.split(" ").map(Number);
+        union(u, v);
+    }
+
+    const roots = new Set();
+    for (let node of nodes) {
+        roots.add(find(node));
+    }
+
+    return roots.size === 1;
+}
+
+async function Prim() {
+    const visitedOrder = document.getElementById("visitedOrder");
+    const inputText = document.getElementById("graphInput").value.trim();
+    const lines = inputText.split("\n");
+    let edges = [];
+    let allNodes = new Set();
+    let graph = {};
+
+    for (let line of lines) {
+        if(isStopped) return;
+        const [u, v, w] = line.split(" ").map(Number);
+        if (w == null) {
+            visitedOrder.innerHTML = "Vui lòng nhập trọng số.";
+            toggleInputs(false);
+            return;
+        }
+        if (w < 0) {
+            visitedOrder.innerHTML = "Trọng số là số không âm.";
+            toggleInputs(false);
+            return;
+        }
+        edges.push({ u, v, w });
+        if (!graph[u]) graph[u] = [];
+        if (!graph[v]) graph[v] = [];
+        graph[u].push({ node: v, weight: w });
+        graph[v].push({ node: u, weight: w });
+        allNodes.add(u);
+        allNodes.add(v);
+    }
+
+    const components = getConnectedComponents(allNodes, edges);
+    let mstResults = [];
+
+    for (let component of components) {
+        if(isStopped) return;
+        let pi = {};
+        let p = {};
+        let mark = {};
+        let mstEdges = [];
+        let totalWeight = 0;
+
+        component.forEach(node => {
+            pi[node] = Infinity;
+            p[node] = -1;
+            mark[node] = false;
+        });
+
+        const startNode = component[0];
+        pi[startNode] = 0;
+
+        for (let i = 0; i < component.length - 1; i++) {
+            if(isStopped) return;
+            let minDist = Infinity;
+            let u = null;
+
+            //Cập nhật như SGK lmaoooo
+            for (let node of component) {
+                if (!mark[node] && pi[node] < minDist) {
+                    minDist = pi[node];
+                    u = node;
+                }
+            }
+
+            if (u === null) break;
+            mark[u] = true;
+            cy.$(`#${u}`).style('background-color', colors.green);
+
+            for (let { node: v, weight: w } of graph[u]) {
+                if (!mark[v] && w < pi[v]) {
+                    pi[v] = w;
+                    p[v] = u;
+                }
+            }
+
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        let seenEdges = new Set();
+
+        for (let v of component) {
+            if(isStopped) return;
+            if (p[v] !== -1) {
+                mstEdges.push({ u: p[v], v: v, w: pi[v] });
+                totalWeight += pi[v];
+
+                let minWeight = Infinity;
+                let minEdge = null;
+
+                cy.edges().forEach(edge => {
+                    let edgeSource = edge.source().id();
+                    let edgeTarget = edge.target().id();
+                    let weight = edge.data('weight');
+
+                    if ((edgeSource === p[v].toString() && edgeTarget === v.toString()) || 
+                        (edgeSource === v.toString() && edgeTarget === p[v].toString())) {
+                        
+                        if (weight < minWeight && !seenEdges.has(edge.id())) {
+                            minWeight = weight;
+                            minEdge = edge;
+                        }
+                    }
+                });
+                //tô màu cung có trọng số nhỏ nhất chuẩn SGKKKK
+                if (minEdge) {
+                    minEdge.style("line-color", colors.red);
+                    seenEdges.add(minEdge.id());
+                }
+            }
+        }
+
+        component.forEach(node => {
+            if (!mark[node]) {
+                cy.$(`#${node}`).style('background-color', colors.green);
+            }
+        });
+
+        mstResults.push(totalWeight);
+    }
+
+    mstResults.forEach((weight, index) => {
+        visitedOrder.innerHTML += `Trọng lượng cây khung ${index + 1}: ${weight}<br>`;
+    });
+
+    toggleInputs(false);
+}
 
 
